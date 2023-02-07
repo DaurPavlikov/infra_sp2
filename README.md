@@ -56,10 +56,22 @@ docker-compose exec web python manage.py createsuperuser
 docker-compose exec web python manage.py collectstatic --no-input
 ```
 
-Создаем дамп базы данных:
+Создание резервной копии базы:
 ```bash
 docker-compose exec web python manage.py dumpdata > fixtures.json
 ```
+
+Восстановление базы из резервной копии:
+
+sudo docker cp ./fixtures.json 68b2d1ff42b3:/app/fixtures.json
+loaddata command
+
+    This command can be use to load the fixtures(database dumps) into database
+
+./manage.py loaddata user.json
+
+    This command will add the user.json file content into the database
+
 
 Останавливаем контейнеры:
 ```bash
