@@ -1,92 +1,89 @@
-# API_YAMDB
-REST API проект для сервиса YaMDb — сбор отзывов о фильмах, книгах или музыке.
+# Развёртывание API YaMDB внутри Docker
 
-## Описание
+**Описание**
 
-Проект YaMDb собирает отзывы пользователей на произведения.
-Произведения делятся на категории: «Книги», «Фильмы», «Музыка».
-Список категорий  может быть расширен (например, можно добавить категорию «Изобразительное искусство» или «Ювелирка»).
-### Как запустить проект:
+Проект YaMDb является базой данных по сбору отзывов пользователей на произведения.
+Произведения делятся на категории, такие как «Книги», «Фильмы», «Музыка». Список категорий может быть расширен, например, можно добавить категорию «Изобразительное искусство» или «Ювелирка», произведению может быть присвоен жанр из списка предустановленных, например, «Сказка», «Рок» или «Артхаус».
+Добавлять произведения, категории и жанры может только администратор. Пользователи оставляют к произведениям текстовые отзывы и ставят произведению оценку в диапазоне от одного до десяти, из пользовательских оценок формируется усреднённая оценка произведения — рейтинг. На одно произведение пользователь может оставить только один отзыв.Добавлять отзывы, комментарии и ставить оценки могут только аутентифицированные пользователи.
 
-Все описанное ниже относится к ОС Linux.
-Клонируем репозиторий и переходим в него:
+Документация доступна по эндпойнту: http://localhost/redoc/
+
+**Версии:**  
+- [Python 3.7.5](https://www.python.org/doc/) 
+- [Django 2.2.16](https://docs.djangoproject.com/en/4.1/releases/2.2.16/)
+- [Django REST framework 3.12.4](https://www.django-rest-framework.org/)
+- [DRF Simple JWT 5.2](https://django-rest-framework-simplejwt.readthedocs.io/en/latest/)
+- [Django Filter 21.1](https://django-filter.readthedocs.io/en/main/)
+- [Docker 23.0](https://docs.docker.com/)
+- [Docker Compose 1.29.2](https://docs.docker.com/compose/gettingstarted/)
+- [PostgreSQL 14](https://www.postgresql.org/)
+- [Gunicorn 20.0.4](https://gunicorn.org/)
+- [nginx 1.22](https://nginx.org/en/)
+
+**Как запустить проект:**
+
+Клонируйте проект из репозитория:
 ```bash
-git clone https://github.com/themasterid/infra_sp2
-cd infra_sp2
-cd api_yamdb
+git clone https://github.com/Koloyojik/infra_sp2
+```
+И перейдите в директорию *api_yamdb* внутри папки проекта:
+```bash
+cd infra_sp2/api_yamdb/
 ```
 
-Создаем и активируем виртуальное окружение:
+Первым делом необходимо создать виртуальное окружение и установить зависимости из *requirements.txt*:
 ```bash
 python3 -m venv venv
-source /venv/bin/activate (source /venv/Scripts/activate - для Windows)
+source /venv/bin/activate
 python -m pip install --upgrade pip
-```
-
-Ставим зависимости из requirements.txt:
-```bash
 pip install -r requirements.txt
 ```
 
-Переходим в папку с файлом docker-compose.yaml:
+После этого преходим в папку с файлом *docker-compose.yaml* по пути:
 ```bash
-cd infra
+cd infra_sp2/infra
 ```
 
-Поднимаем контейнеры (infra_db_1, infra_web_1, infra_nginx_1):
+Создаём и запускаем контейнеры *infra_db_1, infra_web_1, infra_nginx_1*:
 ```bash
 docker-compose up -d --build
 ```
-
-Выполняем миграции:
+Выполняем миграции для базы данных и собираем статику в контейнер:
 ```bash
 docker-compose exec web python manage.py makemigrations reviews
-```
-```bash
 docker-compose exec web python manage.py migrate
+docker-compose exec web python manage.py collectstatic --no-input
 ```
-
-Создаем суперпользователя:
+Загружаем данные в базу из резервной копии, если она есть, *fixtures.json*:
+```bash
+sudo docker cp ./fixtures.json <container_id>:/app/fixtures.json
+docker-compose exec web python manage.py loaddata fixtures.json
+```
+Или создаем суперпользователя для заполнения новой базы данных:
 ```bash
 docker-compose exec web python manage.py createsuperuser
 ```
 
-Србираем статику:
-```bash
-docker-compose exec web python manage.py collectstatic --no-input
-```
-
-Создание резервной копии базы:
+Перед остановкой контейнера необходимо создать резервную копию баз данных командой:
 ```bash
 docker-compose exec web python manage.py dumpdata > fixtures.json
 ```
 
-Восстановление базы из резервной копии:
-
-sudo docker cp ./fixtures.json 68b2d1ff42b3:/app/fixtures.json
-loaddata command
-
-    This command can be use to load the fixtures(database dumps) into database
-
-./manage.py loaddata user.json
-
-    This command will add the user.json file content into the database
-
-
-Останавливаем контейнеры:
+После выполнения всех операций останавливаем контейнеры:
 ```bash
 docker-compose down -v
 ```
 
-### Шаблон наполнения .env (не включен в текущий репозиторий) расположенный по пути infra/.env
+**Шаблон .env-файла, который необходимо разместить по пути infra/.env**
+
+Представлены значения по умолчанию
 ```
-DB_ENGINE=django.db.backends.postgresql
-DB_NAME=postgres
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
+DB_ENGINE=django.db.backends.postgresql # Тип используемой БД
+DB_NAME=postgres # Название БД
+POSTGRES_USER=postgres # Имя PostgreSQL-пользователя
+POSTGRES_PASSWORD=postgres # Пароль для доступа к указанной БД
 DB_HOST=db
 DB_PORT=5432
 ```
 
-### Документация API YaMDb
-Документация доступна по эндпойнту: http://localhost/redoc/
+Автор: [**Даур Павликов**](https://github.com/Koloyojik)
