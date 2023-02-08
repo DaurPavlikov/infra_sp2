@@ -26,7 +26,7 @@
 ```bash
 git clone https://github.com/Koloyojik/infra_sp2
 ```
-И перейдите в директорию *api_yamdb* внутри папки проекта:
+Перейдите в директорию *api_yamdb* внутри папки проекта:
 ```bash
 cd infra_sp2/api_yamdb/
 ```
@@ -50,7 +50,7 @@ docker-compose up -d --build
 ```
 Выполняем миграции для базы данных и собираем статику в контейнер:
 ```bash
-docker-compose exec web python manage.py makemigrations reviews
+docker-compose exec web python manage.py makemigrations
 docker-compose exec web python manage.py migrate
 docker-compose exec web python manage.py collectstatic --no-input
 ```
